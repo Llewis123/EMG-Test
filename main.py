@@ -1,9 +1,10 @@
-# This is a sample Python script.
+"""
+This code was 'loosely!' based on TechWithTims
+pygame tutorial @ https://www.youtube.com/watch?v=uoR4ilCWwKA&t=3s
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
+I was thinking about doing it in C++ using SDL but using pygame is much easier for
+embedded developement
+"""
 import random
 import socket
 
@@ -290,24 +291,32 @@ def main():
                 change_piece = True
         # set sock variables for transfer
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # we read the voltage here, and run to check whether something has gone wrong
         voltage,run = emg.read(sock, HOST, PORT, run)
+        # this returns a list, first index is our right arm, 
+        # 0th index is left arm
         right_arm_v = voltage[1]
         left_arm_v = voltage[0]
+        
+        # setting thresholds for muscle control
         upper_threshold_left = 600
         lower_threshold_left = 200
         upper_threshold_right =  600 # setting to arbitrary values for now - decent guesses
         lower_threshold_right =  200 # for the relaxation threshold
         # TODO: Change this threshold
         # this voltage will represent our bicep
+        # move to right if it is above threshold
         if right_arm_v >= upper_threshold_right:
             current_piece.x += 1
+            # check for valid space
             if not valid_space(current_piece, grid):
                 current_piece.x -= 1
+        # same deal here, but move left if lower than threshold
         elif right_arm_v <= lower_threshold_right:
             current_piece.x -= 1
             if not valid_space(current_piece, grid):
                 current_piece.x += 1
-
+        # if left arm voltage is greater, we rotate the piece
         if left_arm_v >= upper_threshold_left:
             current_piece.rotation = current_piece.rotation + 1 % len(
                 current_piece.shape
@@ -316,7 +325,7 @@ def main():
                 current_piece.rotation = current_piece.rotation - 1 % len(
                     current_piece.shape
                 )
-
+        # otherwise, move down
         elif left_arm_v <= lower_threshold_left:
             # move shape down
             current_piece.y += 1
@@ -324,24 +333,17 @@ def main():
                 current_piece.y -= 1
 
         for event in pygame.event.get():
+            # check for quit
             if event.type == pygame.QUIT:
                 run = False
                 pygame.display.quit()
                 quit()
-
+            # mainly check for the escape key to quit
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     run = False
                     pygame.display.quit()
                     quit()
-
-
-
-                """if event.key == pygame.K_SPACE:
-                    while valid_space(current_piece, grid):
-                        current_piece.y += 1
-                    current_piece.y -= 1
-                    print(convert_shape_format(current_piece))"""  # todo fix
 
         shape_pos = convert_shape_format(current_piece)
 
