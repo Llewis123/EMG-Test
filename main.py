@@ -25,7 +25,13 @@ s_height = 700
 play_width = 300  # meaning 300 // 10 = 30 width per block
 play_height = 600  # meaning 600 // 20 = 20 height per blo ck
 block_size = 30
+SOCK = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+# Bind the socket to the port
+HOST, PORT = '0.0.0.0', 22
+SERVER_ADDRESS = (HOST, PORT)
+
+print(f'Starting UDP server on {HOST} port {PORT}')
 top_left_x = (s_width - play_width) // 2
 top_left_y = s_height - play_height
 
@@ -284,20 +290,38 @@ def main():
                 change_piece = True
         # set sock variables for transfer
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        host, port = "0.0.0.0", 65000
-        voltage = emg.read(sock, host, port, run)
-        upper_threshold = 950  # setting to arbitrary values for now - decent guesses
-        lower_threshold = 250  # for the relaxation threshold
+        voltage,run = emg.read(sock, HOST, PORT, run)
+        right_arm_v = voltage[1]
+        left_arm_v = voltage[0]
+        upper_threshold_left = 600
+        lower_threshold_left = 200
+        upper_threshold_right =  600 # setting to arbitrary values for now - decent guesses
+        lower_threshold_right =  200 # for the relaxation threshold
         # TODO: Change this threshold
         # this voltage will represent our bicep
-        if voltage >= upper_threshold:
+        if right_arm_v >= upper_threshold_right:
             current_piece.x += 1
             if not valid_space(current_piece, grid):
                 current_piece.x -= 1
-        elif voltage <= lower_threshold:
+        elif right_arm_v <= lower_threshold_right:
             current_piece.x -= 1
             if not valid_space(current_piece, grid):
                 current_piece.x += 1
+
+        if left_arm_v >= upper_threshold_left:
+            current_piece.rotation = current_piece.rotation + 1 % len(
+                current_piece.shape
+            )
+            if not valid_space(current_piece, grid):
+                current_piece.rotation = current_piece.rotation - 1 % len(
+                    current_piece.shape
+                )
+
+        elif left_arm_v <= lower_threshold_left:
+            # move shape down
+            current_piece.y += 1
+            if not valid_space(current_piece, grid):
+                current_piece.y -= 1
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -311,21 +335,7 @@ def main():
                     pygame.display.quit()
                     quit()
 
-                elif event.key == pygame.K_UP:
-                    # rotate shape
-                    current_piece.rotation = current_piece.rotation + 1 % len(
-                        current_piece.shape
-                    )
-                    if not valid_space(current_piece, grid):
-                        current_piece.rotation = current_piece.rotation - 1 % len(
-                            current_piece.shape
-                        )
 
-                if event.key == pygame.K_DOWN:
-                    # move shape down
-                    current_piece.y += 1
-                    if not valid_space(current_piece, grid):
-                        current_piece.y -= 1
 
                 """if event.key == pygame.K_SPACE:
                     while valid_space(current_piece, grid):
